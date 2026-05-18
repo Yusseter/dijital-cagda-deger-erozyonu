@@ -760,6 +760,18 @@
       color: #7e1f2b;
     }
 
+    body[data-theme="formal"] .copyright-footer {
+      border: 3px solid #25386f;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.86);
+      color: #3f4858;
+      box-shadow: 0 12px 34px rgba(19, 34, 78, 0.10);
+    }
+
+    body[data-theme="formal"] .copyright-footer strong {
+      color: #111827;
+    }
+
     body[data-theme="formal"] .brand-strip::before,
     body[data-theme="formal"] .brand-strip::after {
       content: "";
@@ -951,7 +963,8 @@
     body[data-theme="formal"][data-color-scheme="dark"] .mini,
     body[data-theme="formal"][data-color-scheme="dark"] .feedback-item,
     body[data-theme="formal"][data-color-scheme="dark"] .side-card,
-    body[data-theme="formal"][data-color-scheme="dark"] .scenario-card {
+    body[data-theme="formal"][data-color-scheme="dark"] .scenario-card,
+    body[data-theme="formal"][data-color-scheme="dark"] .copyright-footer {
       background: rgba(247, 241, 223, 0.07);
       border-color: rgba(247, 241, 223, 0.28);
     }
@@ -963,14 +976,16 @@
     body[data-theme="formal"][data-color-scheme="dark"] .choice-title,
     body[data-theme="formal"][data-color-scheme="dark"] .play-step b,
     body[data-theme="formal"][data-color-scheme="dark"] .meta-item b,
-    body[data-theme="formal"][data-color-scheme="dark"] .feedback-item b {
+    body[data-theme="formal"][data-color-scheme="dark"] .feedback-item b,
+    body[data-theme="formal"][data-color-scheme="dark"] .copyright-footer strong {
       color: #fff8e8;
     }
 
     body[data-theme="formal"][data-color-scheme="dark"] .brand-title span,
     body[data-theme="formal"][data-color-scheme="dark"] p,
     body[data-theme="formal"][data-color-scheme="dark"] .hero-copy,
-    body[data-theme="formal"][data-color-scheme="dark"] .meta-item span {
+    body[data-theme="formal"][data-color-scheme="dark"] .meta-item span,
+    body[data-theme="formal"][data-color-scheme="dark"] .copyright-footer {
       color: #d8cdb7;
     }
 
@@ -1023,6 +1038,25 @@
       margin-top: 18px;
       font-size: 13px;
       color: var(--muted);
+    }
+
+    .copyright-footer {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 5px;
+      padding: 14px 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .copyright-footer strong {
+      color: var(--text);
+      font-size: 13px;
     }
 
     @media (max-width: 860px) {
@@ -1106,7 +1140,9 @@
 
       .brand-strip,
       .panel,
-      .side {
+      .side,
+      .project-meta,
+      .copyright-footer {
         box-shadow: none;
         background: #ffffff;
         color: #111111;
@@ -1325,6 +1361,12 @@
         Proje sloganı: Teknoloji gelişirken değerlerimizi de koruyalım.
       </div>
     </aside>
+
+    <footer class="copyright-footer">
+      <strong>© 2026 Dijital Çağda Değer Erozyonu Projesi.</strong>
+      <span>MIT License kapsamında yayımlanmıştır.</span>
+      <span>Bu uygulama eğitim ve farkındalık amacıyla hazırlanmıştır.</span>
+    </footer>
   </main>
 
   <script>
