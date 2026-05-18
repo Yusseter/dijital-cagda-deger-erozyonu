@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dijital Seçim | Değer Farkındalığı Oyunu</title>
+  <style>
+    :root {
+      --bg-1: #07111f;
+      --bg-2: #10213a;
+      --card: rgba(255, 255, 255, 0.08);
+      --card-2: rgba(255, 255, 255, 0.12);
+      --text: #f5f7fb;
+      --muted: #b8c2d6;
+      --good: #43d17d;
+      --warn: #f5c84c;
+      --bad: #ff5f72;
+      --line: rgba(255, 255, 255, 0.15);
+      --accent: #55b7ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(85, 183, 255, 0.32), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(255, 95, 114, 0.22), transparent 30%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+    }
+
+    .app {
+      width: min(1050px, 100%);
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 18px;
+    }
+
+    .panel, .side {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 24px 90px rgba(0, 0, 0, 0.28);
+    }
+
+    .panel { padding: 30px; }
+    .side { padding: 24px; }
+
+    .tag {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(85, 183, 255, 0.16);
+      color: #cfeeff;
+      font-size: 13px;
+      border: 1px solid rgba(85, 183, 255, 0.28);
+    }
+
+    h1 {
+      margin: 18px 0 8px;
+      font-size: clamp(32px, 4vw, 56px);
+      line-height: 0.98;
+      letter-spacing: -1.8px;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 24px;
+    }
+
+    p {
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 16px;
+      margin: 10px 0;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; animation: fade 260ms ease; }
+
+    @keyframes fade {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .btns {
+      display: grid;
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      color: var(--text);
+      background: var(--card-2);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 15px 16px;
+      text-align: left;
+      font-size: 16px;
+      transition: transform 150ms ease, background 150ms ease, border-color 150ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.32);
+    }
+
+    .primary {
+      background: linear-gradient(135deg, #168fff, #50d28d);
+      border: 0;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .ghost { text-align: center; }
+
+    .scenario-card {
+      margin-top: 18px;
+      padding: 22px;
+      border-radius: 24px;
+      background: rgba(0, 0, 0, 0.20);
+      border: 1px solid var(--line);
+    }
+
+    .phone {
+      min-height: 220px;
+      border-radius: 30px;
+      border: 10px solid rgba(255, 255, 255, 0.14);
+      background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .post {
+      border-radius: 18px;
+      background: rgba(255,255,255,0.10);
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .post strong { display: block; margin-bottom: 8px; }
+    .post small { color: var(--muted); }
+
+    .meter { margin: 16px 0; }
+    .meter-row { display: flex; justify-content: space-between; margin-bottom: 7px; color: var(--muted); font-size: 14px; }
+    .bar { height: 12px; background: rgba(255,255,255,0.10); border-radius: 999px; overflow: hidden; }
+    .fill { height: 100%; width: 50%; border-radius: 999px; transition: width 280ms ease; background: linear-gradient(90deg, var(--bad), var(--warn), var(--good)); }
+
+    .score-box {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .mini {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--line);
+    }
+
+    .mini b { display: block; font-size: 22px; margin-top: 6px; }
+
+    .result-title {
+      font-size: clamp(30px, 4vw, 46px);
+      margin: 12px 0;
+    }
+
+    .notice {
+      margin-top: 16px;
+      padding: 15px;
+      border-radius: 18px;
+      background: rgba(245, 200, 76, 0.12);
+      border: 1px solid rgba(245, 200, 76, 0.26);
+      color: #ffe7a1;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 860px) {
+      body { align-items: flex-start; }
+      .app { grid-template-columns: 1fr; }
+      .panel, .side { border-radius: 22px; padding: 22px; }
+      .score-box { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <div id="start" class="screen active">
+        <span class="tag">Dijital Çağda Değer Erozyonu</span>
+        <h1>Dijital Seçim</h1>
+        <p>
+          Sosyal medyada karşına çıkan durumlarda karar ver. Her seçim; saygı, doğruluk,
+          sorumluluk ve dijital nezaket puanlarını etkiler.
+        </p>
+        <div class="scenario-card">
+          <h2>Oyun amacı</h2>
+          <p>
+            Bu oyun, sosyal medya kullanımının dini ve ahlaki değerler üzerindeki etkisini
+            fark ettirmek için hazırlanmıştır. Amaç kimseyi yargılamak değil; çevrim içi
+            davranışları düşünmektir.
+          </p>
+        </div>
+        <div class="btns">
+          <button class="primary" onclick="startGame()">Oyuna Başla</button>
+        </div>
+      </div>
+
+      <div id="game" class="screen">
+        <span class="tag" id="progressTag">Senaryo 1 / 6</span>
+        <h2 id="scenarioTitle">Senaryo</h2>
+        <p id="scenarioText"></p>
+        <div class="scenario-card">
+          <div class="phone">
+            <div class="post">
+              <strong id="postTitle">Sosyal medya bildirimi</strong>
+              <small id="postText"></small>
+            </div>
+          </div>
+        </div>
+        <div class="btns" id="choices"></div>
+      </div>
+
+      <div id="feedback" class="screen">
+        <span class="tag">Seçimin Sonucu</span>
+        <h2 id="feedbackTitle"></h2>
+        <p id="feedbackText"></p>
+        <div class="notice" id="feedbackNotice"></div>
+        <div class="btns">
+          <button class="primary" onclick="nextScenario()">Devam Et</button>
+        </div>
+      </div>
+
+      <div id="result" class="screen">
+        <span class="tag">Oyun Bitti</span>
+        <h1 class="result-title" id="resultTitle"></h1>
+        <p id="resultText"></p>
+        <div class="score-box">
+          <div class="mini">Saygı <b id="finalRespect">0</b></div>
+          <div class="mini">Doğruluk <b id="finalTruth">0</b></div>
+          <div class="mini">Sorumluluk <b id="finalResponsibility">0</b></div>
+          <div class="mini">Dijital Nezaket <b id="finalKindness">0</b></div>
+        </div>
+        <div class="btns">
+          <button class="primary" onclick="restartGame()">Tekrar Oyna</button>
+          <button class="ghost" onclick="window.print()">Sonucu Yazdır</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <h2>Değer Göstergesi</h2>
+      <p>Seçimlerin puanlara anlık olarak yansır.</p>
+
+      <div class="meter">
+        <div class="meter-row"><span>Saygı</span><span id="respectValue">50</span></div>
+        <div class="bar"><div class="fill" id="respectBar"></div></div>
+      </div>
+      <div class="meter">
+        <div class="meter-row"><span>Doğruluk</span><span id="truthValue">50</span></div>
+        <div class="bar"><div class="fill" id="truthBar"></div></div>
+      </div>
+      <div class="meter">
+        <div class="meter-row"><span>Sorumluluk</span><span id="responsibilityValue">50</span></div>
+        <div class="bar"><div class="fill" id="responsibilityBar"></div></div>
+      </div>
+      <div class="meter">
+        <div class="meter-row"><span>Dijital Nezaket</span><span id="kindnessValue">50</span></div>
+        <div class="bar"><div class="fill" id="kindnessBar"></div></div>
+      </div>
+
+      <div class="scenario-card">
+        <h2>Fuar sorusu</h2>
+        <p>“Sosyal medyada değerlerimizi korumak için hangi davranışı değiştirmeliyiz?”</p>
+      </div>
+      <div class="footer-note">
+        Proje sloganı: Teknoloji gelişirken değerlerimizi de koruyalım.
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const scenarios = [
+      {
+        title: "Alay İçeren Paylaşım",
+        text: "Bir arkadaşınla dalga geçilen kısa bir video sınıf grubunda paylaşılıyor.",
+        postTitle: "Grup paylaşımı",
+        postText: "Bir öğrencinin izinsiz çekilmiş görüntüsü komik açıklamalarla paylaşılmış.",
+        choices: [
+          { text: "Videoyu başkalarına da gönderirim.", effect: { respect: -18, responsibility: -12, kindness: -16 }, title: "Zarar büyüdü", feedback: "İzinsiz ve küçük düşürücü içerik paylaşmak kişinin onurunu zedeler.", notice: "Dijital ortamda da yüz yüze hayattaki saygı ölçüleri geçerlidir." },
+          { text: "Sessiz kalırım, karışmam.", effect: { respect: -6, responsibility: -10, kindness: -5 }, title: "Pasif kalındı", feedback: "Sessiz kalmak bazen olumsuz davranışın yayılmasına yol açabilir.", notice: "Doğru davranış, en azından paylaşımı yaymamaktır." },
+          { text: "Paylaşmam, grubu uyarırım.", effect: { respect: 15, responsibility: 14, kindness: 15 }, title: "Değeri korudun", feedback: "Kişinin mahremiyetini ve saygınlığını koruyan bir seçim yaptın.", notice: "Saygı, dijital dünyada da temel bir değerdir." }
+        ]
+      },
+      {
+        title: "Kaynağı Belirsiz Dini İçerik",
+        text: "Sosyal medyada doğruluğu belli olmayan dini bir bilgi karşına çıkıyor.",
+        postTitle: "Viral içerik",
+        postText: "Paylaşımda kaynak yok; sadece dikkat çekici ve kesin ifadeler kullanılmış.",
+        choices: [
+          { text: "Hemen paylaşırım, faydalı olabilir.", effect: { truth: -18, responsibility: -10 }, title: "Doğruluk zayıfladı", feedback: "Kaynağı belirsiz dini içerikleri paylaşmak yanlış bilginin yayılmasına neden olabilir.", notice: "Dini konularda kaynak kontrolü daha fazla sorumluluk gerektirir." },
+          { text: "Kaynağını araştırırım.", effect: { truth: 18, responsibility: 14 }, title: "Bilinçli seçim", feedback: "Bilgiyi sorgulamak ve güvenilir kaynağa bakmak doğru bir dijital davranıştır.", notice: "Paylaşmadan önce doğrulamak dijital ahlakın parçasıdır." },
+          { text: "Yorumlarda sert tartışmaya girerim.", effect: { respect: -10, kindness: -14, truth: -4 }, title: "Üslup bozuldu", feedback: "Doğruyu savunurken kullanılan dil de önemlidir.", notice: "Saygılı üslup, değerleri korumanın bir yoludur." }
+        ]
+      },
+      {
+        title: "Hakaretli Yorumlar",
+        text: "Bir gönderinin altında inançlara ve kişisel değerlere yönelik küçümseyici yorumlar görüyorsun.",
+        postTitle: "Yorumlar bölümü",
+        postText: "Bazı kullanıcılar farklı düşünen kişilere hakaret ediyor.",
+        choices: [
+          { text: "Ben de aynı sertlikle cevap veririm.", effect: { respect: -14, kindness: -16 }, title: "Gerilim arttı", feedback: "Hakarete hakaretle karşılık vermek ortamı daha da kırıcı hale getirir.", notice: "Dijital nezaket, anlaşmazlık anında da korunmalıdır." },
+          { text: "Saygılı bir dille karşı görüşümü yazarım.", effect: { respect: 14, kindness: 12, truth: 6 }, title: "Olgun tutum", feedback: "Farklı fikirler karşısında saygılı dil kullanmak değer bilincini güçlendirir.", notice: "Üslup, mesajın kendisi kadar etkilidir." },
+          { text: "Hakaretleri beğenirim.", effect: { respect: -16, kindness: -14, responsibility: -8 }, title: "Olumsuzluk desteklendi", feedback: "Beğeni ve etkileşim de bir davranış biçimidir; kırıcı dili görünür kılabilir.", notice: "Etkileşim vermek, içeriği yaymanın bir parçası olabilir." }
+        ]
+      },
+      {
+        title: "Mahremiyet ve Gösteriş",
+        text: "Bir arkadaşın özel hayatına ait bir görüntü izinsiz olarak paylaşılmış.",
+        postTitle: "Hikaye paylaşımı",
+        postText: "Görüntü ilgi çekiyor ancak kişinin izni olup olmadığı belli değil.",
+        choices: [
+          { text: "Ekran görüntüsü alıp saklarım.", effect: { respect: -12, responsibility: -12, kindness: -8 }, title: "Mahremiyet ihlali", feedback: "İzinsiz görüntüleri saklamak veya yaymak mahremiyete zarar verir.", notice: "Mahremiyet, dijital çağda korunması gereken temel değerlerden biridir." },
+          { text: "Paylaşımı yaymadan kişiyi uyarırım.", effect: { respect: 14, responsibility: 16, kindness: 10 }, title: "Sorumlu davranış", feedback: "Paylaşımı büyütmeden ilgili kişiyi uyarmak daha doğru bir yoldur.", notice: "Her içeriğe erişebilmek, onu paylaşma hakkı vermez." },
+          { text: "Herkes görmüş zaten, ben de paylaşırım.", effect: { respect: -18, responsibility: -16, kindness: -12 }, title: "Zarar çoğaldı", feedback: "Bir yanlışın yaygın olması onu doğru yapmaz.", notice: "Dijital kalabalığa uymak yerine değer temelli karar vermek gerekir." }
+        ]
+      },
+      {
+        title: "Kıyaslama Baskısı",
+        text: "Sosyal medyada herkesin hayatı kusursuz görünmektedir. Kendini yetersiz hissetmeye başlıyorsun.",
+        postTitle: "Akış ekranı",
+        postText: "Sürekli başarı, lüks ve kusursuz yaşam görüntüleri karşına çıkıyor.",
+        choices: [
+          { text: "Kendimi sürekli başkalarıyla kıyaslarım.", effect: { responsibility: -8, kindness: -6 }, title: "Algı baskısı", feedback: "Sosyal medya çoğu zaman hayatın seçilmiş ve düzenlenmiş kısmını gösterir.", notice: "Kendi değerini beğeni ve gösteriş üzerinden ölçmek sağlıklı değildir." },
+          { text: "Kullanım süreme sınır koyarım.", effect: { responsibility: 16, kindness: 6 }, title: "Kontrol sende", feedback: "Süreyi kontrol etmek sosyal medyanın etkisini azaltabilir.", notice: "Bilinçli kullanım, değerleri korumanın pratik yollarından biridir." },
+          { text: "Daha fazla ilgi görmek için abartılı paylaşımlar yaparım.", effect: { truth: -10, responsibility: -8 }, title: "Gerçeklik zedelendi", feedback: "Onay arayışı, kişinin davranışlarını ve değer algısını etkileyebilir.", notice: "Dijital görünürlük, kişiliğin ölçüsü değildir." }
+        ]
+      },
+      {
+        title: "Dijital Zaman Yönetimi",
+        text: "Ders, aile ve ibadet/kişisel gelişim zamanın sosyal medya nedeniyle aksıyor.",
+        postTitle: "Bildirimler",
+        postText: "Arka arkaya gelen bildirimler planladığın işleri geciktiriyor.",
+        choices: [
+          { text: "Bildirimleri kapatıp belirli saatlerde kullanırım.", effect: { responsibility: 18, truth: 4, kindness: 4 }, title: "Denge kuruldu", feedback: "Teknolojiyi amaç değil araç olarak kullanmak dengeli bir tercihtir.", notice: "Zaman yönetimi, sorumluluk değerinin dijital alandaki karşılığıdır." },
+          { text: "Biraz daha bakarım, sonra bırakırım.", effect: { responsibility: -8 }, title: "Erteleme başladı", feedback: "Sınırsız kullanım çoğu zaman planları aksatır.", notice: "Küçük ertelemeler zamanla alışkanlığa dönüşebilir." },
+          { text: "Tüm zamanımı akışta geçiririm.", effect: { responsibility: -18, respect: -4 }, title: "Denge kayboldu", feedback: "Sosyal medya günlük sorumlulukların önüne geçtiğinde sorun oluşur.", notice: "Kontrolsüz kullanım değer ve davranış dengesini zayıflatabilir." }
+        ]
+      }
+    ];
+
+    let index = 0;
+    let scores = {
+      respect: 50,
+      truth: 50,
+      responsibility: 50,
+      kindness: 50
+    };
+
+    function clamp(value) {
+      return Math.max(0, Math.min(100, value));
+    }
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function updateMeters() {
+      const pairs = [
+        ['respect', 'respectValue', 'respectBar'],
+        ['truth', 'truthValue', 'truthBar'],
+        ['responsibility', 'responsibilityValue', 'responsibilityBar'],
+        ['kindness', 'kindnessValue', 'kindnessBar']
+      ];
+
+      pairs.forEach(([key, valueId, barId]) => {
+        document.getElementById(valueId).textContent = scores[key];
+        document.getElementById(barId).style.width = scores[key] + '%';
+      });
+    }
+
+    function startGame() {
+      index = 0;
+      scores = { respect: 50, truth: 50, responsibility: 50, kindness: 50 };
+      updateMeters();
+      renderScenario();
+      showScreen('game');
+    }
+
+    function renderScenario() {
+      const scenario = scenarios[index];
+      document.getElementById('progressTag').textContent = `Senaryo ${index + 1} / ${scenarios.length}`;
+      document.getElementById('scenarioTitle').textContent = scenario.title;
+      document.getElementById('scenarioText').textContent = scenario.text;
+      document.getElementById('postTitle').textContent = scenario.postTitle;
+      document.getElementById('postText').textContent = scenario.postText;
+
+      const choices = document.getElementById('choices');
+      choices.innerHTML = '';
+      scenario.choices.forEach((choice, choiceIndex) => {
+        const button = document.createElement('button');
+        button.textContent = choice.text;
+        button.onclick = () => choose(choiceIndex);
+        choices.appendChild(button);
+      });
+    }
+
+    function choose(choiceIndex) {
+      const choice = scenarios[index].choices[choiceIndex];
+      Object.keys(choice.effect).forEach(key => {
+        scores[key] = clamp(scores[key] + choice.effect[key]);
+      });
+      updateMeters();
+
+      document.getElementById('feedbackTitle').textContent = choice.title;
+      document.getElementById('feedbackText').textContent = choice.feedback;
+      document.getElementById('feedbackNotice').textContent = choice.notice;
+      showScreen('feedback');
+    }
+
+    function nextScenario() {
+      index += 1;
+      if (index >= scenarios.length) {
+        finishGame();
+      } else {
+        renderScenario();
+        showScreen('game');
+      }
+    }
+
+    function finishGame() {
+      const total = scores.respect + scores.truth + scores.responsibility + scores.kindness;
+      const average = Math.round(total / 4);
+      let title = '';
+      let text = '';
+
+      if (average >= 75) {
+        title = 'Bilinçli Dijital Kullanıcı';
+        text = 'Seçimlerin, sosyal medyada değerleri koruyan ve sorumluluk alan bir yaklaşım gösteriyor.';
+      } else if (average >= 50) {
+        title = 'Geliştirilebilir Farkındalık';
+        text = 'Bazı seçimlerin olumlu, bazıları riskli. Dijital ortamda paylaşmadan ve tepki vermeden önce düşünmek önemli.';
+      } else {
+        title = 'Değer Erozyonu Riski';
+        text = 'Seçimlerin, sosyal medyada saygı, doğruluk ve sorumluluk açısından dikkat edilmesi gereken noktalar olduğunu gösteriyor.';
+      }
+
+      document.getElementById('resultTitle').textContent = title;
+      document.getElementById('resultText').textContent = text;
+      document.getElementById('finalRespect').textContent = scores.respect;
+      document.getElementById('finalTruth').textContent = scores.truth;
+      document.getElementById('finalResponsibility').textContent = scores.responsibility;
+      document.getElementById('finalKindness').textContent = scores.kindness;
+      showScreen('result');
+    }
+
+    function restartGame() {
+      startGame();
+    }
+
+    updateMeters();
+  </script>
+</body>
+</html>
