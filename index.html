@@ -6,7 +6,7 @@
   <title>Dijital Çağda Değer Erozyonu | Dijital Seçim Oyunu</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body data-theme="modern" data-color-mode="auto" data-color-scheme="dark">
+<body data-theme="modern" data-color-mode="auto" data-color-scheme="dark" data-text-size="100" data-sound="0">
   <button class="menu-toggle" id="settingsMenuToggle" type="button" aria-label="Görünüm ayarlarını aç" aria-controls="themeControls" aria-expanded="false" onclick="toggleSettingsMenu()">
     <span></span>
     <span></span>
@@ -36,6 +36,39 @@
         <button class="setting-option" type="button" role="option" data-setting-option="color" data-value="light" onclick="selectColorMode('light')">Aydınlık</button>
       </div>
     </div>
+
+    <div class="setting-range drawer-extra">
+      <div class="setting-range-head">
+        <span>Yazı Boyutu</span>
+        <b id="textSizeValue">100%</b>
+      </div>
+      <input class="range-control" id="textSizeRange" type="range" min="95" max="120" step="5" value="100" aria-label="Yazı boyutu" oninput="setTextSize(this.value)" />
+    </div>
+
+    <div class="setting-range drawer-extra">
+      <div class="setting-range-head">
+        <span>Ses Efektleri</span>
+        <b id="soundLevelValue">0%</b>
+      </div>
+      <input class="range-control" id="soundLevelRange" type="range" min="0" max="100" step="10" value="0" aria-label="Ses efekti seviyesi" oninput="setSoundLevel(this.value)" onchange="previewSoundSetting()" />
+    </div>
+
+    <div class="setting-info drawer-extra">
+      <button class="theme-toggle setting-action" id="howToToggle" type="button" aria-controls="howToPanel" aria-expanded="false" onclick="toggleHowTo()">Nasıl Oynanır?</button>
+      <div class="setting-info-panel" id="howToPanel" hidden>
+        <ol>
+          <li>Karşına çıkan sosyal medya durumunu oku.</li>
+          <li>Sana en doğru gelen davranışı seç.</li>
+          <li>Oyun sonunda dijital profilini ve rozetlerini gör.</li>
+        </ol>
+        <p>Her oyunda 6 rastgele senaryo gelir.</p>
+      </div>
+    </div>
+
+    <div class="setting-actions drawer-extra" aria-label="Oyun araçları">
+      <button class="theme-toggle setting-action" type="button" onclick="restartFromMenu()">Yeni Oyun Başlat</button>
+      <button class="theme-toggle setting-action" id="fullscreenButton" type="button" onclick="toggleFullscreen()">Tam Ekran</button>
+    </div>
   </div>
 
   <main class="app" data-screen="start">
@@ -46,6 +79,7 @@
       <div class="brand-title">
         <strong id="brandMainTitle">DİJİTAL ÇAĞDA DEĞER EROZYONU</strong>
         <span id="brandSubTitle">Gençlerin Sosyal Mecrada Dini ve Ahlaki Değerlere Yaklaşımı</span>
+        <em>T.C. Millî Eğitim Bakanlığı Ömer-Serpil Özberber AİHL Fen ve Sosyal Bilimler Proje Okulu 12. Dönem TÜBİTAK 4006-A Bilim Fuarı Proje Sergisi</em>
       </div>
       <div class="logo-frame tubitak-frame">
         <img class="brand-logo" src="Logos/tubitak_logo.png" alt="TÜBİTAK logosu" />

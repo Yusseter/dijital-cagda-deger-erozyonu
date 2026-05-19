@@ -27,6 +27,8 @@ const valueMeta = {
 
 const themeStorageKey = 'dijital-secim-theme';
 const colorModeStorageKey = 'dijital-secim-color-mode';
+const textSizeStorageKey = 'dijital-secim-text-size';
+const soundStorageKey = 'dijital-secim-sound';
 const themeLabels = {
   modern: 'Modern görünüm',
   formal: 'Pano görünümü'
@@ -42,6 +44,15 @@ const colorModeSelectLabels = {
   dark: 'Koyu',
   light: 'Aydınlık'
 };
+const textSizeMin = 95;
+const textSizeMax = 120;
+const defaultTextSize = 100;
+const soundMin = 0;
+const soundMax = 100;
+const defaultSoundLevel = 0;
+
+let soundLevel = 0;
+let audioContext = null;
 
 function setTheme(theme) {
   const activeTheme = theme === 'formal' ? 'formal' : 'modern';
@@ -119,6 +130,82 @@ function selectColorMode(mode) {
   closeSettingSelects();
 }
 
+function clampSetting(value, min, max) {
+  const numeric = Number(value);
+  const safeValue = Number.isFinite(numeric) ? numeric : min;
+  return Math.max(min, Math.min(max, safeValue));
+}
+
+function setTextSize(size) {
+  const activeSize = clampSetting(size, textSizeMin, textSizeMax);
+  document.body.dataset.textSize = String(activeSize);
+  document.body.style.setProperty('--text-scale', String(activeSize / 100));
+
+  const value = document.getElementById('textSizeValue');
+  const range = document.getElementById('textSizeRange');
+
+  if (value) {
+    value.textContent = `${activeSize}%`;
+  }
+
+  if (range) {
+    range.value = String(activeSize);
+    range.setAttribute('aria-valuetext', `${activeSize}%`);
+  }
+
+  try {
+    localStorage.setItem(textSizeStorageKey, String(activeSize));
+  } catch (error) {
+    // Yazı boyutu saklanamazsa varsayılan görünüm kullanılır.
+  }
+}
+
+function setSoundLevel(level) {
+  const activeLevel = clampSetting(level, soundMin, soundMax);
+  document.body.dataset.sound = String(activeLevel);
+  soundLevel = activeLevel / 100;
+
+  const value = document.getElementById('soundLevelValue');
+  const range = document.getElementById('soundLevelRange');
+
+  if (value) {
+    value.textContent = `${activeLevel}%`;
+  }
+
+  if (range) {
+    range.value = String(activeLevel);
+    range.setAttribute('aria-valuetext', activeLevel === 0 ? 'Kapalı' : `${activeLevel}%`);
+  }
+
+  try {
+    localStorage.setItem(soundStorageKey, String(activeLevel));
+  } catch (error) {
+    // Ses tercihi saklanamazsa varsayılan kapalı kalır.
+  }
+}
+
+function previewSoundSetting() {
+  if (soundLevel > 0) {
+    playSound('toggle');
+  }
+}
+
+function setSoundMode(mode, preview = false) {
+  setSoundLevel(mode === 'on' ? 40 : 0);
+
+  if (preview) {
+    previewSoundSetting();
+  }
+}
+
+function selectTextSize(size) {
+  setTextSize(size);
+}
+
+function selectSoundMode(mode) {
+  setSoundMode(mode, true);
+}
+
 function cycleColorMode() {
   const currentMode = document.body.dataset.colorMode || 'auto';
   const currentIndex = colorModeOrder.indexOf(currentMode);
@@ -154,6 +241,105 @@ function toggleSettingSelect(type) {
   if (button) {
     button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
   }
+}
+
+function playSound(type) {
+  if (soundLevel <= 0 || typeof window === 'undefined') {
+    return;
+  }
+
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    return;
+  }
+
+  try {
+    if (!audioContext) {
+      audioContext = new AudioContextClass();
+    }
+
+    if (audioContext.state === 'suspended') {
+      audioContext.resume();
+    }
+
+    const tones = {
+      toggle: [560, 0.06],
+      start: [660, 0.08],
+      select: [520, 0.07],
+      positive: [760, 0.09],
+      warning: [220, 0.10],
+      next: [610, 0.05],
+      finish: [880, 0.12]
+    };
+    const [frequency, duration] = tones[type] || tones.select;
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const now = audioContext.currentTime;
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(frequency, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.08 * soundLevel, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + duration + 0.02);
+  } catch (error) {
+    // Tarayıcı ses üretimine izin vermezse oyun sessiz devam eder.
+  }
+}
+
+function playChoiceSound(choice) {
+  const totalEffect = Object.values(choice.effect).reduce((sum, value) => sum + value, 0);
+
+  if (totalEffect >= 12) {
+    playSound('positive');
+  } else if (totalEffect < 0) {
+    playSound('warning');
+  } else {
+    playSound('select');
+  }
+}
+
+function updateFullscreenButton() {
+  const button = document.getElementById('fullscreenButton');
+  if (button) {
+    button.textContent = document.fullscreenElement ? 'Tam Ekrandan Çık' : 'Tam Ekran';
+    button.disabled = !document.fullscreenEnabled;
+  }
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenEnabled) {
+    return;
+  }
+
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  } else {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+
+  closeSettingsMenu();
+}
+
+function toggleHowTo() {
+  const panel = document.getElementById('howToPanel');
+  const button = document.getElementById('howToToggle');
+  if (!panel || !button) {
+    return;
+  }
+
+  const willOpen = panel.hidden;
+  panel.hidden = !willOpen;
+  button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+}
+
+function restartFromMenu() {
+  restartGame();
+  closeSettingsMenu();
 }
 
 function setSettingsMenu(open) {
@@ -193,11 +379,8 @@ function initSettingsMenu() {
     }
   });
 
-  window.addEventListener('resize', () => {
-    if (window.matchMedia('(min-width: 861px)').matches) {
-      closeSettingsMenu();
-    }
-  });
+  document.addEventListener('fullscreenchange', updateFullscreenButton);
+  updateFullscreenButton();
 }
 
 function initColorMode() {
@@ -225,6 +408,42 @@ function initColorMode() {
       media.addListener(handleSystemChange);
     }
   }
+}
+
+function initTextSize() {
+  let savedSize = String(defaultTextSize);
+
+  try {
+    savedSize = localStorage.getItem(textSizeStorageKey) || String(defaultTextSize);
+  } catch (error) {
+    savedSize = String(defaultTextSize);
+  }
+
+  if (savedSize === 'large') {
+    savedSize = '115';
+  } else if (savedSize === 'normal') {
+    savedSize = String(defaultTextSize);
+  }
+
+  setTextSize(savedSize);
+}
+
+function initSoundMode() {
+  let savedSound = String(defaultSoundLevel);
+
+  try {
+    savedSound = localStorage.getItem(soundStorageKey) || String(defaultSoundLevel);
+  } catch (error) {
+    savedSound = String(defaultSoundLevel);
+  }
+
+  if (savedSound === 'on') {
+    savedSound = '40';
+  } else if (savedSound === 'off') {
+    savedSound = String(defaultSoundLevel);
+  }
+
+  setSoundLevel(savedSound);
 }
 
 function initTheme() {
@@ -328,6 +547,7 @@ function selectScenarios() {
 }
 
 function startGame() {
+  playSound('start');
   index = 0;
   scenarios = selectScenarios();
   scores = { respect: 50, truth: 50, responsibility: 50, kindness: 50 };
@@ -365,6 +585,7 @@ function renderScenario() {
 }
 
 function choose(choice) {
+  playChoiceSound(choice);
   Object.keys(choice.effect).forEach(key => {
     scores[key] = clamp(scores[key] + choice.effect[key]);
   });
@@ -384,6 +605,7 @@ function nextScenario() {
   if (index >= scenarios.length) {
     finishGame();
   } else {
+    playSound('next');
     renderScenario();
     showScreen('game');
   }
@@ -465,6 +687,7 @@ function renderBadges(average) {
 }
 
 function finishGame() {
+  playSound('finish');
   const average = getAverage();
   const profile = getProfile(average);
   const strongest = getValueByScore('max');
@@ -494,5 +717,7 @@ function restartGame() {
 
 initTheme();
 initColorMode();
+initTextSize();
+initSoundMode();
 initSettingsMenu();
 updateMeters();
