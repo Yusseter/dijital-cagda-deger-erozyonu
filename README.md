@@ -34,9 +34,9 @@ Bu araştırma, nicel ve nitel verilerin birlikte kullanıldığı **karma yönt
 
 Pano üzerinde yer alan bulgular ve sütun grafikleri aşağıda sunulmuştur:
 
-![Sosyal medya kullanım süresine göre değer farkındalığı grafiği](Sources/colon-1.png)
+![Sosyal medya kullanım süresine göre değer farkındalığı grafiği](Pictures/colon-1.png)
 
-![Değer türlerine göre duyarlılık düzeyi grafiği](Sources/colon-2.png)
+![Değer türlerine göre duyarlılık düzeyi grafiği](Pictures/colon-2.png)
 
 ## Sonuç ve Tartışma
 
