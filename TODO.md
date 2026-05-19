@@ -1,0 +1,5 @@
+ - Add ana menu button to the end of the game
+ - Set default sound level %100
+ - Add more detailed how to play
+ - Add oyunu bitir and ana menu button to the hamburger button
+ - On mobile when clicking start button from bottom, set location to the up region after clicking
