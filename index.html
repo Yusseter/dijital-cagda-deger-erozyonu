@@ -70,6 +70,7 @@
 
     <div class="setting-actions drawer-extra" aria-label="Oyun araçları">
       <button class="theme-toggle setting-action" type="button" onclick="restartFromMenu()">Yeni Oyun Başlat</button>
+      <button class="theme-toggle setting-action" type="button" onclick="openBalanceWheel(true)">Dijital Denge Çarkı</button>
       <button class="theme-toggle setting-action" id="homeMenuButton" type="button" onclick="goToMainMenu(true)" disabled>Ana Menü</button>
       <button class="theme-toggle setting-action" id="finishMenuButton" type="button" onclick="finishFromMenu()" disabled>Oyunu Bitir</button>
       <button class="theme-toggle setting-action" id="fullscreenButton" type="button" onclick="toggleFullscreen()">Tam Ekran</button>
@@ -147,7 +148,53 @@
 
         <div class="start-action">
           <button class="primary" onclick="startGame()">Oyuna Başla</button>
+          <button class="ghost" onclick="openBalanceWheel(false)">Dijital Denge Çarkı</button>
           <span class="time-note">Yaklaşık 2 dakika sürer.</span>
+        </div>
+      </div>
+
+      <div id="balance-wheel" class="screen wheel-screen">
+        <span class="tag">Fuar Etkinliği | Dijital Denge</span>
+        <div class="wheel-layout">
+          <div class="wheel-copy">
+            <h1 class="result-title">Dijital Denge Çarkı</h1>
+            <p>
+              Çarkı çevir, sosyal medya kullanımını dengeleyen kısa bir görev seç.
+              Görevi standdan ayrılmadan ya da gün içinde tamamlayabilirsin.
+            </p>
+
+            <div class="wheel-result" aria-live="polite">
+              <span>Seçilen görev</span>
+              <strong id="wheelTask">Çarkı çevir ve görevini gör.</strong>
+              <p id="wheelNote">Görev çıkınca kısa öneri burada görünecek.</p>
+            </div>
+
+            <div class="wheel-stats" aria-label="Çark katılım bilgileri">
+              <div class="mini">Bugünkü Katılım <b id="wheelCompletionCount">0</b></div>
+              <div class="mini">Son Görev <b id="lastWheelTask">Henüz yok</b></div>
+            </div>
+
+            <div class="btns wheel-actions">
+              <button class="ghost" id="wheelCompleteButton" type="button" onclick="completeWheelTask()" disabled>Görevi Aldım</button>
+              <button class="ghost" type="button" onclick="goToMainMenu(false)">Ana Menü</button>
+            </div>
+          </div>
+
+          <div class="wheel-stage" aria-label="Dijital denge görev çarkı">
+            <div class="wheel-pointer" aria-hidden="true"></div>
+            <div class="wheel-shell" id="wheelShell">
+              <div class="balance-wheel" id="balanceWheel" role="img" aria-label="Altı görevden oluşan dijital denge çarkı"></div>
+              <div class="wheel-label-track" aria-hidden="true">
+                <span class="wheel-label wheel-label-1"><span>1 Saat</span></span>
+                <span class="wheel-label wheel-label-2"><span>Filtresiz</span></span>
+                <span class="wheel-label wheel-label-3"><span>Aile</span></span>
+                <span class="wheel-label wheel-label-4"><span>30 Dakika</span></span>
+                <span class="wheel-label wheel-label-5"><span>Yüz Yüze</span></span>
+                <span class="wheel-label wheel-label-6"><span>Bildirim</span></span>
+              </div>
+              <button class="wheel-center primary" id="wheelSpinButton" type="button" onclick="spinBalanceWheel()">Çarkı Çevir</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -258,6 +305,13 @@
     <footer class="copyright-footer">
       <strong>© 2026 Dijital Çağda Değer Erozyonu Projesi.</strong>
       <span>MIT License kapsamında yayımlanmıştır.</span>
+      <a class="footer-github-link" href="https://github.com/Yusseter/dijital-cagda-deger-erozyonu" target="_blank" rel="noopener noreferrer" aria-label="GitHub deposunu aç">
+        <span class="footer-github-icons" aria-hidden="true">
+          <img class="footer-github-icon footer-github-icon-dark" src="Images/github_icon_white.png" alt="" />
+          <img class="footer-github-icon footer-github-icon-light" src="Images/github_icon_black.png" alt="" />
+        </span>
+        GitHub
+      </a>
       <span>Bu uygulama eğitim ve farkındalık amacıyla hazırlanmıştır.</span>
     </footer>
   </main>

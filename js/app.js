@@ -29,6 +29,7 @@ const themeStorageKey = 'dijital-secim-theme';
 const colorModeStorageKey = 'dijital-secim-color-mode';
 const textSizeStorageKey = 'dijital-secim-text-size';
 const soundStorageKey = 'dijital-secim-sound';
+const wheelStorageKey = 'dijital-denge-wheel';
 const themeLabels = {
   modern: 'Modern görünüm',
   formal: 'Pano görünümü'
@@ -50,9 +51,56 @@ const defaultTextSize = 100;
 const soundMin = 0;
 const soundMax = 100;
 const defaultSoundLevel = 100;
+const wheelMinFlickSpeed = 0.38;
+const wheelMaxFlickSpeed = 1.35;
+const wheelMinFlickDistance = 18;
 
 let soundLevel = defaultSoundLevel / 100;
 let audioContext = null;
+let wheelRotation = 0;
+let wheelIsSpinning = false;
+let selectedWheelTask = null;
+let wheelSpinTimer = null;
+let wheelDragState = {
+  active: false,
+  pointerId: null,
+  lastAngle: 0,
+  lastTime: 0,
+  velocity: 0,
+  totalDistance: 0
+};
+let wheelParticipation = {
+  date: '',
+  count: 0,
+  lastTask: 'Henüz yok'
+};
+
+const balanceWheelTasks = [
+  {
+    text: '1 saat telefonsuz kal',
+    note: 'Telefonu görünür bir yerden uzaklaştır ve bu süreyi gerçek bir uğraşa ayır.'
+  },
+  {
+    text: 'Bugün filtresiz fotoğraf paylaş',
+    note: 'Kendini olduğundan farklı göstermeden, doğal bir anı paylaşmayı dene.'
+  },
+  {
+    text: 'Ailenle telefonsuz yemek ye',
+    note: 'Yemek boyunca telefonu masadan uzak tut ve konuşmaya alan aç.'
+  },
+  {
+    text: '30 dakika sosyal medya molası ver',
+    note: 'Kısa bir ara ver, bildirimleri beklet ve zihnini dinlendir.'
+  },
+  {
+    text: 'Bir arkadaşınla yüz yüze sohbet et',
+    note: 'Mesaj yerine gerçek bir sohbet başlat; kısa bile olsa daha kalıcıdır.'
+  },
+  {
+    text: 'Bildirimlerini kapat',
+    note: 'En çok dikkatini bölen uygulamadan başlayarak bildirimleri sessize al.'
+  }
+];
 
 function setTheme(theme) {
   const activeTheme = theme === 'formal' ? 'formal' : 'modern';
@@ -269,7 +317,9 @@ function playSound(type) {
       positive: [760, 0.09],
       warning: [220, 0.10],
       next: [610, 0.05],
-      finish: [880, 0.12]
+      finish: [880, 0.12],
+      wheel: [700, 0.08],
+      complete: [920, 0.10]
     };
     const [frequency, duration] = tones[type] || tones.select;
     const oscillator = audioContext.createOscillator();
@@ -373,6 +423,361 @@ function closeSettingsMenu() {
   closeSettingSelects();
 }
 
+function getLocalDateStamp() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function updateWheelDisplay() {
+  const count = document.getElementById('wheelCompletionCount');
+  const lastTask = document.getElementById('lastWheelTask');
+
+  if (count) {
+    count.textContent = wheelParticipation.count;
+  }
+
+  if (lastTask) {
+    lastTask.textContent = wheelParticipation.lastTask;
+  }
+}
+
+function normalizeWheelAngle(angle) {
+  return ((angle % 360) + 360) % 360;
+}
+
+function getWheelPointerAngle(event, wheelShell) {
+  const rect = wheelShell.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  return normalizeWheelAngle(Math.atan2(event.clientY - centerY, event.clientX - centerX) * 180 / Math.PI + 90);
+}
+
+function getWheelAngleDelta(nextAngle, previousAngle) {
+  return ((nextAngle - previousAngle + 540) % 360) - 180;
+}
+
+function getRandomWheelOffset() {
+  const offset = 8 + Math.random() * 18;
+  return Math.random() < 0.5 ? -offset : offset;
+}
+
+function getWheelTaskIndex(rotation) {
+  const segmentAngle = 360 / balanceWheelTasks.length;
+  const pointerAngleOnWheel = normalizeWheelAngle(-rotation + segmentAngle / 2);
+  return Math.floor(pointerAngleOnWheel / segmentAngle) % balanceWheelTasks.length;
+}
+
+function getWheelDeltaToTarget(targetAngle, direction, rounds) {
+  const currentAngle = normalizeWheelAngle(wheelRotation);
+
+  if (direction < 0) {
+    return -(rounds * 360 + normalizeWheelAngle(currentAngle - targetAngle));
+  }
+
+  return rounds * 360 + normalizeWheelAngle(targetAngle - currentAngle);
+}
+
+function getWheelSpinDuration(speedRatio = 0.55) {
+  const normalizedSpeed = Math.min(Math.max(speedRatio, 0), 1);
+  return Math.round(1300 + normalizedSpeed * 1800);
+}
+
+function getWheelFlickRatio(speed) {
+  if (speed < wheelMinFlickSpeed) {
+    return 0;
+  }
+
+  return Math.min((speed - wheelMinFlickSpeed) / (wheelMaxFlickSpeed - wheelMinFlickSpeed), 1);
+}
+
+function setWheelRotation(rotation, duration = null) {
+  const wheelShell = document.getElementById('wheelShell');
+  if (!wheelShell) {
+    return;
+  }
+
+  if (duration !== null) {
+    wheelShell.style.setProperty('--wheel-spin-duration', `${duration}ms`);
+  }
+
+  wheelRotation = rotation;
+  wheelShell.style.setProperty('--wheel-rotation', `${wheelRotation}deg`);
+  wheelShell.style.setProperty('--wheel-counter-rotation', `${-wheelRotation}deg`);
+}
+
+function showWheelFlickHint() {
+  const completeButton = document.getElementById('wheelCompleteButton');
+  const task = document.getElementById('wheelTask');
+  const note = document.getElementById('wheelNote');
+
+  selectedWheelTask = null;
+
+  if (completeButton) {
+    completeButton.disabled = true;
+  }
+
+  if (task && note) {
+    task.textContent = 'Biraz daha hızlı savur.';
+    note.textContent = 'Görev seçilmesi için çarkı kısa ve net bir hareketle bırakmalısın. İstersen ortadaki butonu da kullanabilirsin.';
+  }
+
+  playSound('warning');
+}
+
+function saveWheelParticipation() {
+  try {
+    localStorage.setItem(wheelStorageKey, JSON.stringify(wheelParticipation));
+  } catch (error) {
+    // Katılım sayacı saklanamazsa çark yine çalışmaya devam eder.
+  }
+}
+
+function initWheelParticipation() {
+  const today = getLocalDateStamp();
+  let savedParticipation = null;
+
+  try {
+    savedParticipation = JSON.parse(localStorage.getItem(wheelStorageKey));
+  } catch (error) {
+    savedParticipation = null;
+  }
+
+  if (savedParticipation && savedParticipation.date === today) {
+    wheelParticipation = {
+      date: today,
+      count: Number(savedParticipation.count) || 0,
+      lastTask: savedParticipation.lastTask || 'Henüz yok'
+    };
+  } else {
+    wheelParticipation = { date: today, count: 0, lastTask: 'Henüz yok' };
+  }
+
+  updateWheelDisplay();
+}
+
+function openBalanceWheel(confirmIfActive = true) {
+  if (confirmIfActive && isActiveGameScreen()) {
+    const shouldLeave = window.confirm('Aktif oyunu bırakıp Dijital Denge Çarkı etkinliğine geçmek istiyor musun? Puanların sıfırlanacak.');
+
+    if (!shouldLeave) {
+      return;
+    }
+
+    resetGameState();
+  }
+
+  closeSettingsMenu();
+  updateWheelDisplay();
+
+  const insight = document.getElementById('currentInsight');
+  if (insight) {
+    insight.textContent = 'Dijital Denge Çarkı, ziyaretçilere kısa ve uygulanabilir sosyal medya denge görevleri verir.';
+  }
+
+  showScreen('balance-wheel');
+}
+
+function spinBalanceWheel() {
+  if (wheelIsSpinning) {
+    return;
+  }
+
+  const taskIndex = Math.floor(Math.random() * balanceWheelTasks.length);
+  const segmentAngle = 360 / balanceWheelTasks.length;
+  const targetAngle = normalizeWheelAngle(360 - taskIndex * segmentAngle + getRandomWheelOffset());
+  const spinRounds = 4 + Math.floor(Math.random() * 3);
+  const delta = getWheelDeltaToTarget(targetAngle, 1, spinRounds);
+  animateWheelTo(wheelRotation + delta, taskIndex, getWheelSpinDuration(0.7));
+}
+
+function animateWheelTo(targetRotation, taskIndex, duration = getWheelSpinDuration()) {
+  const spinButton = document.getElementById('wheelSpinButton');
+  const completeButton = document.getElementById('wheelCompleteButton');
+  const task = document.getElementById('wheelTask');
+  const note = document.getElementById('wheelNote');
+  const wheelShell = document.getElementById('wheelShell');
+
+  if (!spinButton || !completeButton || !task || !note || !wheelShell) {
+    return;
+  }
+
+  window.clearTimeout(wheelSpinTimer);
+  wheelShell.classList.remove('wheel-dragging');
+  wheelIsSpinning = true;
+  selectedWheelTask = null;
+  spinButton.disabled = true;
+  spinButton.textContent = 'Dönüyor...';
+  completeButton.disabled = true;
+  task.textContent = 'Çark dönüyor...';
+  note.textContent = 'Görev birazdan seçilecek.';
+  setWheelRotation(targetRotation, duration);
+  playSound('wheel');
+
+  wheelSpinTimer = window.setTimeout(() => {
+    selectedWheelTask = balanceWheelTasks[taskIndex];
+    task.textContent = selectedWheelTask.text;
+    note.textContent = selectedWheelTask.note;
+    completeButton.disabled = false;
+    spinButton.disabled = false;
+    spinButton.textContent = 'Tekrar Çevir';
+    wheelIsSpinning = false;
+
+    const insight = document.getElementById('currentInsight');
+    if (insight) {
+      insight.textContent = `Çark görevi: ${selectedWheelTask.text}`;
+    }
+
+    playSound('finish');
+  }, duration + 120);
+}
+
+function startWheelDrag(event) {
+  const wheelShell = document.getElementById('wheelShell');
+
+  if (!wheelShell || wheelIsSpinning || (event.target.closest && event.target.closest('button'))) {
+    return;
+  }
+
+  const angle = getWheelPointerAngle(event, wheelShell);
+  wheelDragState = {
+    active: true,
+    pointerId: event.pointerId,
+    lastAngle: angle,
+    lastTime: Date.now(),
+    velocity: 0,
+    totalDistance: 0
+  };
+
+  selectedWheelTask = null;
+  wheelShell.classList.add('wheel-dragging');
+  if (wheelShell.setPointerCapture) {
+    wheelShell.setPointerCapture(event.pointerId);
+  }
+
+  const completeButton = document.getElementById('wheelCompleteButton');
+  const task = document.getElementById('wheelTask');
+  const note = document.getElementById('wheelNote');
+
+  if (completeButton) {
+    completeButton.disabled = true;
+  }
+
+  if (task && note) {
+    task.textContent = 'Çarkı bırakınca görev seçilecek.';
+    note.textContent = 'İstersen hızlıca savur, istersen yavaşça çevir.';
+  }
+}
+
+function moveWheelDrag(event) {
+  const wheelShell = document.getElementById('wheelShell');
+
+  if (!wheelShell || !wheelDragState.active || event.pointerId !== wheelDragState.pointerId) {
+    return;
+  }
+
+  const now = Date.now();
+  const nextAngle = getWheelPointerAngle(event, wheelShell);
+  const delta = getWheelAngleDelta(nextAngle, wheelDragState.lastAngle);
+  const elapsed = Math.max(now - wheelDragState.lastTime, 16);
+  const instantVelocity = delta / elapsed;
+
+  wheelDragState.velocity = wheelDragState.velocity === 0
+    ? instantVelocity
+    : wheelDragState.velocity * 0.45 + instantVelocity * 0.55;
+  wheelDragState.totalDistance += Math.abs(delta);
+  wheelDragState.lastAngle = nextAngle;
+  wheelDragState.lastTime = now;
+  setWheelRotation(wheelRotation + delta);
+}
+
+function finishWheelDrag(event) {
+  const wheelShell = document.getElementById('wheelShell');
+
+  if (!wheelShell || !wheelDragState.active || event.pointerId !== wheelDragState.pointerId) {
+    return;
+  }
+
+  if (wheelShell.hasPointerCapture && wheelShell.hasPointerCapture(event.pointerId)) {
+    wheelShell.releasePointerCapture(event.pointerId);
+  }
+  wheelShell.classList.remove('wheel-dragging');
+
+  const releaseDelay = Date.now() - wheelDragState.lastTime;
+  const speedDecay = Math.max(0, 1 - releaseDelay / 180);
+  const direction = wheelDragState.velocity < 0 ? -1 : 1;
+  const speed = Math.min(Math.abs(wheelDragState.velocity) * speedDecay, wheelMaxFlickSpeed);
+  const speedRatio = getWheelFlickRatio(speed);
+
+  wheelDragState.active = false;
+
+  if (speedRatio === 0 || wheelDragState.totalDistance < wheelMinFlickDistance) {
+    showWheelFlickHint();
+    return;
+  }
+
+  const projectedRotation = wheelRotation + direction * (120 + speedRatio * 1200 + Math.random() * (80 + speedRatio * 240));
+  const taskIndex = getWheelTaskIndex(projectedRotation);
+  const segmentAngle = 360 / balanceWheelTasks.length;
+  const targetAngle = normalizeWheelAngle(360 - taskIndex * segmentAngle + getRandomWheelOffset());
+  const spinRounds = Math.floor(speedRatio * 5) + (speedRatio > 0.35 ? Math.floor(Math.random() * 2) : 0);
+  const delta = getWheelDeltaToTarget(targetAngle, direction, spinRounds);
+  const duration = getWheelSpinDuration(speedRatio);
+
+  animateWheelTo(wheelRotation + delta, taskIndex, duration);
+}
+
+function cancelWheelDrag(event) {
+  const wheelShell = document.getElementById('wheelShell');
+
+  if (!wheelShell || !wheelDragState.active || event.pointerId !== wheelDragState.pointerId) {
+    return;
+  }
+
+  wheelDragState.active = false;
+  if (wheelShell.hasPointerCapture && wheelShell.hasPointerCapture(event.pointerId)) {
+    wheelShell.releasePointerCapture(event.pointerId);
+  }
+  wheelShell.classList.remove('wheel-dragging');
+}
+
+function initWheelDrag() {
+  const wheelShell = document.getElementById('wheelShell');
+
+  if (!wheelShell) {
+    return;
+  }
+
+  wheelShell.addEventListener('pointerdown', startWheelDrag);
+  wheelShell.addEventListener('pointermove', moveWheelDrag);
+  wheelShell.addEventListener('pointerup', finishWheelDrag);
+  wheelShell.addEventListener('pointercancel', cancelWheelDrag);
+}
+
+function completeWheelTask() {
+  const completeButton = document.getElementById('wheelCompleteButton');
+  const task = document.getElementById('wheelTask');
+  const note = document.getElementById('wheelNote');
+
+  if (!selectedWheelTask || !completeButton || !task || !note) {
+    return;
+  }
+
+  wheelParticipation.date = getLocalDateStamp();
+  wheelParticipation.count += 1;
+  wheelParticipation.lastTask = selectedWheelTask.text;
+  saveWheelParticipation();
+  updateWheelDisplay();
+
+  task.textContent = `Görev alındı: ${selectedWheelTask.text}`;
+  note.textContent = 'Harika. Şimdi görevi gerçek hayatta uygulama zamanı.';
+  selectedWheelTask = null;
+  completeButton.disabled = true;
+  playSound('complete');
+}
+
 function getCurrentScreen() {
   const app = document.querySelector('.app');
   return app ? app.dataset.screen : 'start';
@@ -394,7 +799,7 @@ function updateMenuActions() {
   }
 
   if (finishButton) {
-    finishButton.disabled = !hasStartedGame || screen === 'start' || screen === 'result';
+    finishButton.disabled = !hasStartedGame || !isActiveGameScreen();
   }
 }
 
@@ -807,5 +1212,7 @@ initColorMode();
 initTextSize();
 initSoundMode();
 initSettingsMenu();
+initWheelParticipation();
+initWheelDrag();
 updateMeters();
 updateMenuActions();
