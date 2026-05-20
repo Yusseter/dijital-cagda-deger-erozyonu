@@ -6,7 +6,7 @@
   <title>Dijital Çağda Değer Erozyonu | Dijital Seçim Oyunu</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body data-theme="modern" data-color-mode="auto" data-color-scheme="dark" data-text-size="100" data-sound="0">
+<body data-theme="modern" data-color-mode="auto" data-color-scheme="dark" data-text-size="100" data-sound="100">
   <button class="menu-toggle" id="settingsMenuToggle" type="button" aria-label="Görünüm ayarlarını aç" aria-controls="themeControls" aria-expanded="false" onclick="toggleSettingsMenu()">
     <span></span>
     <span></span>
@@ -48,9 +48,9 @@
     <div class="setting-range drawer-extra">
       <div class="setting-range-head">
         <span>Ses Efektleri</span>
-        <b id="soundLevelValue">0%</b>
+        <b id="soundLevelValue">100%</b>
       </div>
-      <input class="range-control" id="soundLevelRange" type="range" min="0" max="100" step="10" value="0" aria-label="Ses efekti seviyesi" oninput="setSoundLevel(this.value)" onchange="previewSoundSetting()" />
+      <input class="range-control" id="soundLevelRange" type="range" min="0" max="100" step="10" value="100" aria-label="Ses efekti seviyesi" oninput="setSoundLevel(this.value)" onchange="previewSoundSetting()" />
     </div>
 
     <div class="setting-info drawer-extra">
@@ -58,15 +58,20 @@
       <div class="setting-info-panel" id="howToPanel" hidden>
         <ol>
           <li>Karşına çıkan sosyal medya durumunu oku.</li>
+          <li>Durumun hangi değer alanıyla ilgili olduğunu ve ipucunu incele.</li>
           <li>Sana en doğru gelen davranışı seç.</li>
-          <li>Oyun sonunda dijital profilini ve rozetlerini gör.</li>
+          <li>Seçimin saygı, doğruluk, sorumluluk ve dijital nezaket puanlarına nasıl yansıdığını gör.</li>
+          <li>Devam Et butonuyla 6 rastgele senaryoyu tamamla.</li>
+          <li>Oyun sonunda dijital profilini, güçlü değerini, gelişecek değerini ve rozetlerini gör.</li>
         </ol>
-        <p>Her oyunda 6 rastgele senaryo gelir.</p>
+        <p>Menüden ana menüye dönebilir ya da oyunu mevcut puanlarınla bitirebilirsin.</p>
       </div>
     </div>
 
     <div class="setting-actions drawer-extra" aria-label="Oyun araçları">
       <button class="theme-toggle setting-action" type="button" onclick="restartFromMenu()">Yeni Oyun Başlat</button>
+      <button class="theme-toggle setting-action" id="homeMenuButton" type="button" onclick="goToMainMenu(true)" disabled>Ana Menü</button>
+      <button class="theme-toggle setting-action" id="finishMenuButton" type="button" onclick="finishFromMenu()" disabled>Oyunu Bitir</button>
       <button class="theme-toggle setting-action" id="fullscreenButton" type="button" onclick="toggleFullscreen()">Tam Ekran</button>
     </div>
   </div>
@@ -217,6 +222,7 @@
         <div class="notice" id="resultAdvice"></div>
         <div class="btns">
           <button class="primary" onclick="restartGame()">Tekrar Oyna</button>
+          <button class="ghost" onclick="goToMainMenu(false)">Ana Menü</button>
           <button class="ghost" onclick="window.print()">Sonucu Yazdır</button>
         </div>
       </div>

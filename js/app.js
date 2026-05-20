@@ -49,9 +49,9 @@ const textSizeMax = 120;
 const defaultTextSize = 100;
 const soundMin = 0;
 const soundMax = 100;
-const defaultSoundLevel = 0;
+const defaultSoundLevel = 100;
 
-let soundLevel = 0;
+let soundLevel = defaultSoundLevel / 100;
 let audioContext = null;
 
 function setTheme(theme) {
@@ -191,7 +191,7 @@ function previewSoundSetting() {
 }
 
 function setSoundMode(mode, preview = false) {
-  setSoundLevel(mode === 'on' ? 40 : 0);
+  setSoundLevel(mode === 'on' ? defaultSoundLevel : 0);
 
   if (preview) {
     previewSoundSetting();
@@ -342,6 +342,18 @@ function restartFromMenu() {
   closeSettingsMenu();
 }
 
+function resetGameState() {
+  index = 0;
+  scenarios = [];
+  scores = { respect: 50, truth: 50, responsibility: 50, kindness: 50 };
+  updateMeters();
+
+  const insight = document.getElementById('currentInsight');
+  if (insight) {
+    insight.textContent = 'Oyuna başlayınca her seçimin hangi değeri etkilediği burada görünecek.';
+  }
+}
+
 function setSettingsMenu(open) {
   document.body.classList.toggle('settings-open', open);
 
@@ -359,6 +371,76 @@ function toggleSettingsMenu() {
 function closeSettingsMenu() {
   setSettingsMenu(false);
   closeSettingSelects();
+}
+
+function getCurrentScreen() {
+  const app = document.querySelector('.app');
+  return app ? app.dataset.screen : 'start';
+}
+
+function isActiveGameScreen() {
+  const screen = getCurrentScreen();
+  return screen === 'game' || screen === 'feedback';
+}
+
+function updateMenuActions() {
+  const screen = getCurrentScreen();
+  const hasStartedGame = scenarios.length > 0;
+  const homeButton = document.getElementById('homeMenuButton');
+  const finishButton = document.getElementById('finishMenuButton');
+
+  if (homeButton) {
+    homeButton.disabled = screen === 'start';
+  }
+
+  if (finishButton) {
+    finishButton.disabled = !hasStartedGame || screen === 'start' || screen === 'result';
+  }
+}
+
+function scrollPanelIntoView() {
+  if (typeof window === 'undefined' || !window.matchMedia('(max-width: 860px)').matches) {
+    return;
+  }
+
+  const panel = document.querySelector('.panel');
+  if (!panel) {
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+function goToMainMenu(confirmIfActive = true) {
+  if (confirmIfActive && isActiveGameScreen()) {
+    const shouldLeave = window.confirm('Aktif oyunu bırakıp ana menüye dönmek istiyor musun? Puanların sıfırlanacak.');
+
+    if (!shouldLeave) {
+      return;
+    }
+  }
+
+  closeSettingsMenu();
+  resetGameState();
+  showScreen('start');
+}
+
+function finishFromMenu() {
+  if (!scenarios.length || !isActiveGameScreen()) {
+    updateMenuActions();
+    return;
+  }
+
+  const shouldFinish = window.confirm('Oyunu mevcut puanlarınla bitirmek istiyor musun?');
+
+  if (!shouldFinish) {
+    return;
+  }
+
+  closeSettingsMenu();
+  finishGame();
 }
 
 function initSettingsMenu() {
@@ -438,9 +520,9 @@ function initSoundMode() {
   }
 
   if (savedSound === 'on') {
-    savedSound = '40';
-  } else if (savedSound === 'off') {
     savedSound = String(defaultSoundLevel);
+  } else if (savedSound === 'off') {
+    savedSound = '0';
   }
 
   setSoundLevel(savedSound);
@@ -476,6 +558,11 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelector('.app').dataset.screen = id;
+  updateMenuActions();
+
+  if (id !== 'start') {
+    scrollPanelIntoView();
+  }
 }
 
 function scoreStatus(value) {
@@ -721,3 +808,4 @@ initTextSize();
 initSoundMode();
 initSettingsMenu();
 updateMeters();
+updateMenuActions();
